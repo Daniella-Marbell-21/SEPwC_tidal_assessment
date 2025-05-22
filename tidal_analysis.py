@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 
 # import the modules you need here
-import argparse
+import os
+import datetime
+import nump as np
+import panda as pd
+
+tidal_file = "data/1947ABE.txt"
 
 def read_tidal_data(filename):
+    if not os.path.exists(tidal_file):
+        print("Not able to read tidal data yet.")
+        return
+    with open(tidal_file, "r", encoding="utf-8") as file:
+        tidal_data = file.readlines()
 
     return 0
     
