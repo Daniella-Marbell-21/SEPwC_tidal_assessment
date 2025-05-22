@@ -9,10 +9,10 @@ import panda as pd
 tidal_file = "data/1947ABE.txt"
 
 def read_tidal_data(filename):
-    if not os.path.exists(tidal_file):
+    if not os.path.exists(tidal_file):                          #ErrorHandling
         print("Not able to read tidal data yet.")
         return
-    with open(tidal_file, "r", encoding="utf-8") as file:
+    with open(tidal_file, "r", encoding="utf-8") as file:       #Open file to read
         tidal_data = file.readlines()
 
     return 0
