@@ -1,20 +1,35 @@
 #!/usr/bin/env python3
 
 # import the modules you need here
+# i am suppose to make a dataframe that has columns of time, date and Sea level,
+#float integers for Sea level, with at least one value missing
 import os
 import datetime
-import nump as np
-import panda as pd
+import numpy as np
+import pandas as pd
+import argparse
 
 tidal_file = "data/1947ABE.txt"
 
 def read_tidal_data(filename):
-    if not os.path.exists(tidal_file):                          #ErrorHandling
+    if not os.path.exists(filename):                          #ErrorHandling
         print("Not able to read tidal data yet.")
         return
-    with open(tidal_file, "r", encoding="utf-8") as file:       #Open file to read
+    with open(filename, "r", encoding="utf-8") as file:       #Open file to read
         tidal_data = file.readlines()
-
+        
+#Parse string so python can understand
+        
+    date_string = "1947-1-1-0"                              
+    date_object = datetime.datetime.strptime(date_string, "%Y-%m-%d-%H")
+    print(date_object)
+        
+#make dataframe    
+    string = "sea_level"                                       #
+    dates = pd.date_range("19470101", periods=8760, freq='h')
+    dates
+    df = pd.DataFrame(np.random.randn(8760, 1), index=dates, columns=["Sea_level"])
+    df
     return 0
     
 def extract_single_year_remove_mean(year, data):
