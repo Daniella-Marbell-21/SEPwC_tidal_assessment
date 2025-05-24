@@ -1,113 +1,95 @@
-#!/usr/bin/env python3
 
-# import the modules you need here
-# i am suppose to make a dataframe that has columns of time, date and Sea level,
-#float integers for Sea level, with at least one value missing
-import os
-import datetime
-import numpy as np
+# import the modules we need
 import pandas as pd
-import argparse
+import matplotlib.pyplot as plt
+import datetime
+import wget
+import os
+import numpy as np
+import uptide
+import pytz
+import math
 
-tidal_file = "data/1947ABE.txt"
 
 def read_tidal_data(filename):
-    if not os.path.exists(filename):                          #ErrorHandling
-        print("Not able to read tidal data yet.")
-        return
-    with open(filename, "r", encoding="utf-8") as file:       #Open file to read
-        tidal_data = file.readlines()
-        
-#Parse string so python can understand
-        
-    date_string = "1947-1-1-0"                              
-    date_object = datetime.datetime.strptime(date_string, "%Y-%m-%d-%H")
-    print(date_object)
-        
-    
-    # create datetime index
-    dates = pd.date_range("19470101", periods=8760, freq='H')
-    dates
-    df = pd.DataFrame(np.random.randn(8760,1), index=dates, columns=["Sea_level"])
-    df
+    tide_data = pd.read_txt(filename, header=None)
+    tide_data['Date'] = pd.to_datetime(dict(year=tide_data[0], month=tide_data[1], day=tide_data[2], hour=tide_data[3]))
+    # col 0 is year, col 1 is month, col2 is day, col3 hour
+    tide_data = tide_data.drop([0,1,2,3], axis = 1)
+    tide_data = tide_data.rename(columns={4: "Tide"})
+    tide_data = tide_data.set_index('Date')
+    tide_data = tide_data.mask(tide_data['Tide'] < -300)
+    return tide_data
     
 
+    filename = "C:/Users/marbd/SEPwC/SEPwC_summative/SEPwC_tidal_assessment/data/1947ABE.txt"
+
+
+    for url in urls:
+        file_name = os.path.basename(url) # get the full path to the file
+        if os.path.exists(file_name):
+                os.remove(file_name) # if exists, remove it directly
+        file_name = wget.download(url, out=".")
 
 
 
 
 
-    
-    # Create 8760 hourly timestamps using datetime and a loop
-    start = datetime.datetime(1947, 1, 1, 0)
-    datetimes = [start + datetime.timedelta(hours=i) for i in range(8760)]
 
-    # Convert those to your custom string format: "YYYY-M-D-H"
-    date_strings = [dt.strftime("%Y-%m-%d-%H") for dt in datetimes]  
+  
 
-    # Now parse them back using strptime
-    parsed_dates = [datetime.datetime.strptime(ds, "%Y-%m-%d-%H") for ds in date_strings]
-
-    # Print first 5 to verify
-    for d in parsed_dates[:5]:
-        print(d)
-
-    
 def extract_single_year_remove_mean(year, data):
+    year_string_start = str(year)+"0101"
+    year_string_end = str(year)+"1231"
+    year_data = data.loc[year_string_start:year_string_end, ['Tide']]
+   # remove mean to oscillate around zero
+    mmm = np.mean(year_data['Tide'])
+    year_data['Tide'] -= mmm
+    
 
-
-    return 
+    return year_data
 
 
 def extract_section_remove_mean(start, end, data):
-  
 
-
-    return 
+    return
 
 
 def join_data(data1, data2):
- 
 
-    return 
-
+    return
 
 
 def sea_level_rise(data):
 
+    return
 
-                                                     
-    return 
 
 def tidal_analysis(data, constituents, start_datetime):
- 
 
-    return 
+    return
+
 
 def get_longest_contiguous_data(data):
- 
 
+    return
 
-    return 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
-                     prog="UK Tidal analysis",
-                     description="Calculate tidal constiuents and RSL from tide gauge data",
-                     epilog="Copyright 2024, Jon Hill"
-                     )
+        prog="UK Tidal analysis",
+        description="Calculate tidal constiuents and RSL from tide gauge data",
+        epilog="Copyright 2024, Jon Hill"
+    )
 
     parser.add_argument("directory",
-                    help="the directory containing txt files with data")
+                        help="the directory containing txt files with data")
     parser.add_argument('-v', '--verbose',
-                    action='store_true',
-                    default=False,
-                    help="Print progress")
+                        action='store_true',
+                        default=False,
+                        help="Print progress")
 
     args = parser.parse_args()
     dirname = args.directory
     verbose = args.verbose
-    
-
-
