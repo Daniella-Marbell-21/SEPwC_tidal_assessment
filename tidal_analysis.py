@@ -134,8 +134,9 @@ def tidal_analysis(data, constituents, start_datetime):
 
 
 def get_longest_contiguous_data(data):
-
-    return
+    
+    return longest_block_data
+    
 
 
 if __name__ == '__main__':
