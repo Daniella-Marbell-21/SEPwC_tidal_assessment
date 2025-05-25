@@ -64,37 +64,27 @@ def read_tidal_data(filename):
         # or other issues during data transformation.
         raise ValueError(f"An unexpected error occurred while processing '{filename}': {e}")
 
-    
-  
-  
-    
-   
-
-
-
-
-
-
-  
+def join_data(df1: pd.DataFrame, df2: pd.DataFrame):
+    """
+    Combines two tidal data DataFrames by concatenating them and sorting by index.
+    """
+    combined_data = pd.concat([df1, df2])
+    combined_data = combined_data.sort_index()
+    return combined_data
 
 def extract_single_year_remove_mean(year, data):
     year_string_start = str(year)+"0101"
     year_string_end = str(year)+"1231"
-    year_data = data.loc[year_string_start:year_string_end, ['Tide']]
+    year_data = data.loc[year_string_start:year_string_end, ['Sea Level']]
    # remove mean to oscillate around zero
-    mmm = np.mean(year_data['Tide'])
-    year_data['Tide'] -= mmm
+    mmm = np.mean(year_data['Sea Level'])
+    year_data['Sea Level'] -= mmm
     
 
     return year_data
 
 
 def extract_section_remove_mean(start, end, data):
-
-    return
-
-
-def join_data(data1, data2):
 
     return
 
