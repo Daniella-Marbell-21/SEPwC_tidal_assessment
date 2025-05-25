@@ -10,6 +10,7 @@ import uptide
 import pytz
 import math
 import argparse
+import scipy.stats
 
 
 def read_tidal_data(filename):
@@ -86,8 +87,14 @@ def extract_single_year_remove_mean(year, data):
 
 def extract_section_remove_mean(start, end, data):
 
-    return
+    # Use pandas' convenient slicing with string dates for DatetimeIndex
+    section_data = data.loc[start:end, ['Sea Level']]
 
+    # Remove mean to oscillate around zero
+    mmm = np.mean(section_data['Sea Level'])
+    section_data['Sea Level'] -= mmm
+
+    return section_data
 
 def sea_level_rise(data):
 
