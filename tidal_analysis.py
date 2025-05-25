@@ -1,5 +1,8 @@
+# Copyright (c) 2025 Daniella Marbell
+#
+# This code is licensed under the MIT License.
+# See the LICENSE file in the project root for the full license text.
 
-# import the modules we need
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
@@ -12,44 +15,26 @@ import math
 import argparse
 import scipy.stats
 
-
 def read_tidal_data(filename):
     if not os.path.exists(filename):
         raise FileNotFoundError(f"Tidal data file not found at: '{filename}'")
     try:
-        # Read the raw data.
-        # na_values will now only apply to exact matches of 'N' or 'T'.
-        # The 'M' from '2.1336M' will be handled manually.
         tide_data = pd.read_csv(filename,
                                 sep=r'\s+',      # Uses one or more whitespace as separator
-                                header=None,     # No header row
-                                na_values=['N', 'T'], # 'N' and 'T' are missing values
+                                header=None,    
+                                na_values=['N', 'T'], 
                                 engine='python', # Robust engine
-                                skiprows=11      # Skip initial metadata rows
+                                skiprows=11      # Skip initial metadata rows 
                                )
 
-        # Step 1: Create the 'Date' column by combining original columns 1 and 2
-        # tide_data[1] is 'YYYY/MM/DD', tide_data[2] is 'HH:MM:SS'
-        tide_data['Date'] = pd.to_datetime(tide_data[1] + ' ' + tide_data[2])
-
-        # Step 2: Extract 'Sea Level' from original column 3
-        # It comes as a string (e.g., '2.1336M').
-        # First, convert to string type (if not already) and remove the 'M'.
-        # Then, convert to numeric, coercing any non-numeric values (like leftover 'N' or 'T' if not caught by na_values) to NaN.
+        tide_data['Date'] = pd.to_datetime(tide_data[1] + ' ' + tide_data[2], utc=True)
         tide_data['Sea Level'] = tide_data[3].astype(str).str.replace('M', '', regex=False)
         tide_data['Sea Level'] = pd.to_numeric(tide_data['Sea Level'], errors='coerce') # Convert to float, turn errors into NaN
+        
+        tide_data = tide_data.drop(columns=[0, 1, 2, 4])   
 
-        # Step 3: Drop the original raw columns that are no longer needed
-        # Original column 0: the row index (e.g., '1)'). Drop it.
-        # Original column 1: date part. Drop it, it's in 'Date'.
-        # Original column 2: time part. Drop it, it's in 'Date'.
-        # Original column 4: the second data column (e.g., '0.6109M'). Drop it, not 'Sea Level'.
-        tide_data = tide_data.drop(columns=[0, 1, 2, 4])
-
-        # Step 4: Set the 'Date' column as the DataFrame's index
         tide_data = tide_data.set_index('Date')
 
-        # Step 5: Apply the mask for values less than -300
         tide_data["Sea Level"] = tide_data["Sea Level"].mask(tide_data["Sea Level"] < -300)
 
         # The 'Sea Level' column is already float due to pd.to_numeric(errors='coerce')
@@ -66,11 +51,14 @@ def read_tidal_data(filename):
         raise ValueError(f"An unexpected error occurred while processing '{filename}': {e}")
 
 def join_data(df1: pd.DataFrame, df2: pd.DataFrame):
-    """
-    Combines two tidal data DataFrames by concatenating them and sorting by index.
-    """
+    
+    #Combines two tidal data DataFrames by concatenating them and sorting by index.
+    
     combined_data = pd.concat([df1, df2])
     combined_data = combined_data.sort_index()
+    if combined_data.index.tz is not None:
+        combined_data.index = combined_data.index.tz_localize(None)
+        
     return combined_data
 
 def extract_single_year_remove_mean(year, data):
@@ -81,9 +69,7 @@ def extract_single_year_remove_mean(year, data):
     mmm = np.mean(year_data['Sea Level'])
     year_data['Sea Level'] -= mmm
     
-
     return year_data
-
 
 def extract_section_remove_mean(start, end, data):
 
@@ -97,13 +83,54 @@ def extract_section_remove_mean(start, end, data):
     return section_data
 
 def sea_level_rise(data):
+    
+    time_numeric = (data.index - data.index[0]).total_seconds() / (3600 * 24)
+    sea_level = data['Sea Level'].dropna()
+    time_numeric = time_numeric[sea_level.index]
+    slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(time_numeric, sea_level)
+    slope_mm_per_year = slope * 1000 * 365.25
 
-    return
+    return slope_mm_per_year, p_value
 
 
 def tidal_analysis(data, constituents, start_datetime):
+    
+    resampled_data = data['Sea Level'].resample('h').mean()
+    interpolated_data = resampled_data.interpolate(method='linear')
+    cleaned_interpolated_segment = interpolated_data.dropna()
+    sea_level = cleaned_interpolated_segment.values.astype(np.float64)
+    times_in_seconds = (cleaned_interpolated_segment.index - start_datetime).total_seconds().to_numpy().astype(np.float64)
 
-    return
+    print(f"DEBUG: Length of sea_level (x): {len(sea_level)}")
+    print(f"DEBUG: Length of times_in_seconds (t): {len(times_in_seconds)}")
+    print(f"DEBUG: Type of sea_level: {type(sea_level)}, dtype: {sea_level.dtype}")
+    print(f"DEBUG: Type of times_in_seconds: {type(times_in_seconds)}, dtype: {times_in_seconds.dtype}")
+    if len(sea_level) > 0:
+        print(f"DEBUG: First 5 sea_level values: {sea_level[:5]}")
+        print(f"DEBUG: First 5 times_in_seconds values: {times_in_seconds[:5]}")
+        # Verify the first time point is approximately zero
+        print(f"DEBUG: First time in seconds: {times_in_seconds[0]}")
+
+    # This check is mostly for debugging, as the above steps *should* make them equal
+    if len(sea_level) != len(times_in_seconds):
+        print("Warning: Length mismatch after cleaning data in tidal_analysis.")
+        # Return placeholders if an unexpected mismatch occurs
+        return [0.0 for _ in constituents], [0.0 for _ in constituents]
+    aberdeen_latitude = 57.1497
+    try:
+        tide_analysis_result = uptide.harmonic_analysis(
+            times_in_seconds,
+            sea_level,
+            constituents
+        )
+    except Exception as e:
+        print(f"Error during tidal analysis: {e}")
+        # For debugging, you might want to return zeros or raise the error
+        return [0.0 for _ in constituents], [0.0 for _ in constituents]
+    amp = [tide_analysis_result[c][0] for c in constituents]
+    pha = [tide_analysis_result[c][1] for c in constituents]
+
+    return amp, pha
 
 
 def get_longest_contiguous_data(data):
